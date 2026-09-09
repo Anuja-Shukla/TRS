@@ -426,12 +426,14 @@ p { margin: 0 0 16px; color: var(--slate); }
 }
 .media-article-head { max-width: 720px; }
 .media-article p a {
-  color: var(--navy);
+  color: var(--navy-soft);
+  font-weight: 600;
   text-decoration: underline;
   text-decoration-color: var(--gold);
-  text-underline-offset: 2px;
+  text-decoration-thickness: 2px;
+  text-underline-offset: 3px;
 }
-.media-article p a:hover { color: var(--navy-soft); }
+.media-article p a:hover { color: var(--gold); text-decoration-color: var(--navy-soft); }
 .media-meta {
   display: flex;
   gap: 20px;
