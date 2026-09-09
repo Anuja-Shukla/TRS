@@ -464,6 +464,11 @@ p { margin: 0 0 16px; color: var(--slate); }
   .carousel-track { animation: none; overflow-x: auto; }
   .carousel { -webkit-mask-image: none; mask-image: none; }
 }
+.coverage-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+}
 @media (max-width: 640px) {
   .media-article { padding: 28px 22px; }
   .carousel-track img { height: 170px; }
