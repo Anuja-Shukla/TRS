@@ -491,33 +491,6 @@ p { margin: 0 0 16px; color: var(--slate); }
   gap: 14px;
 }
 
-/* ---------- guest session ---------- */
-.guest-banner {
-  margin: 8px 0 32px;
-  border-radius: var(--radius);
-  overflow: hidden;
-  border: 1px solid var(--line);
-  box-shadow: var(--shadow-sm);
-}
-.guest-wrap {
-  display: grid;
-  grid-template-columns: 280px 1fr;
-  gap: 40px;
-  align-items: start;
-}
-.guest-poster {
-  border-radius: var(--radius);
-  overflow: hidden;
-  border: 1px solid var(--line);
-  box-shadow: var(--shadow-sm);
-  position: sticky;
-  top: 100px;
-}
-.guest-bio h3 { margin-bottom: 14px; }
-@media (max-width: 800px) {
-  .guest-wrap { grid-template-columns: 1fr; }
-  .guest-poster { position: static; max-width: 320px; margin: 0 auto; }
-}
 @media (max-width: 640px) {
   .media-article { padding: 28px 22px; }
   .carousel-track img { height: 170px; }
