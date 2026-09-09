@@ -425,6 +425,13 @@ p { margin: 0 0 16px; color: var(--slate); }
   box-shadow: var(--shadow-sm);
 }
 .media-article-head { max-width: 720px; }
+.media-article p a {
+  color: var(--navy);
+  text-decoration: underline;
+  text-decoration-color: var(--gold);
+  text-underline-offset: 2px;
+}
+.media-article p a:hover { color: var(--navy-soft); }
 .media-meta {
   display: flex;
   gap: 20px;
