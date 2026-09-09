@@ -334,7 +334,17 @@ p { margin: 0 0 16px; color: var(--slate); }
   padding: 26px 22px;
   text-align: center;
 }
-.audience-row .icon { font-size: 1.6rem; margin-bottom: 10px; }
+.audience-row .icon {
+  width: 52px;
+  height: 52px;
+  border-radius: 12px;
+  background: var(--bg-alt);
+  color: var(--navy);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 16px;
+}
 
 /* ---------- CTA band ---------- */
 .cta-band {
@@ -423,6 +433,8 @@ p { margin: 0 0 16px; color: var(--slate); }
   color: var(--slate);
   margin: -4px 0 20px;
 }
+.media-meta span { display: inline-flex; align-items: center; gap: 6px; }
+.media-meta svg { flex-shrink: 0; color: var(--gold); }
 
 .carousel {
   position: relative;
