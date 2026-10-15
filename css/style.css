@@ -781,7 +781,7 @@ a.client-card:hover .client-name { color: var(--navy); text-decoration-color: va
 /* nav with six tabs: keep labels on one line, tighten spacing, and switch to the menu button earlier */
 .nav-links a { white-space: nowrap; }
 .nav-links { gap: 22px; } .nav-links a { font-size: 0.9rem; } .nav-cta { margin-left: 24px; }
-@media (max-width: 1160px) {
+@media (max-width: 1360px) {
   .nav-links { display: none; }
   .nav-toggle { display: flex; }
   .nav-links.open {
@@ -789,4 +789,26 @@ a.client-card:hover .client-name { color: var(--navy); text-decoration-color: va
     background: var(--white); flex-direction: column; padding: 20px 24px 28px; gap: 18px;
     border-bottom: 1px solid var(--line); box-shadow: var(--shadow);
   }
+}
+
+/* resources */
+a.service-card.resource-card { text-decoration: none; color: inherit; display: flex; flex-direction: column; transition: transform .2s ease, box-shadow .2s ease, border-color .2s ease; }
+a.service-card.resource-card:hover { transform: translateY(-3px); box-shadow: var(--shadow); border-color: var(--gold-soft); }
+.resource-card .go { margin-top: auto; padding-top: 14px; color: var(--navy); font-weight: 600; }
+.listing-wrap { max-width: 860px; }
+.listing-meta { color: var(--slate); font-size: .92rem; margin: 0 0 18px; display: flex; gap: 14px; flex-wrap: wrap; }
+.listing-meta a { color: var(--navy); font-weight: 600; text-decoration: none; }
+.listing { display: grid; gap: 10px; }
+.listing-item { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 4px 16px; align-items: center; padding: 16px 20px; border: 1px solid var(--line); border-radius: 12px; background: var(--white); text-decoration: none; color: var(--ink); transition: border-color .2s ease, background .2s ease; }
+.listing-item:hover { border-color: var(--gold); background: var(--bg-alt); }
+.listing-title { font-weight: 600; overflow-wrap: anywhere; }
+.listing-sub { grid-column: 1; color: var(--slate); font-size: .9rem; }
+.listing-go { grid-column: 2; grid-row: 1 / span 2; color: var(--gold); font-weight: 700; }
+.listing-empty { color: var(--slate); padding: 24px; text-align: center; border: 1px dashed var(--gold-soft); border-radius: 12px; background: var(--bg-alt); }
+.listing-note { color: var(--slate); font-size: .85rem; margin-top: 24px; }
+.nav-links { gap: 18px; }
+@media (max-width: 480px) {
+  .nav-cta { margin-left: 8px; gap: 8px; }
+  .nav-cta .btn { padding-left: 14px; padding-right: 14px; }
+  .brand-text .sub { display: none; }
 }

@@ -1,0 +1,929 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Reference Checker — The Research School</title>
+  <meta name="description" content="Paste your manuscript and reference list: map every in-text citation to its reference, catch missing and uncited entries, and flag references that may be hallucinated or retracted.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Lora:wght@500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #f6f8fb; --bg-2: #FFFFFF; --panel: #FFFFFF; --panel-hover: #eef2f7;
+      --text: #1c2430; --muted: #5a6472; --accent: #c9a24b; --accent-2: #14335e;
+      --accent-3: #d4b36a;
+      --accent-strong: #0f2340;
+      --accent-strong-2: #8a6d2b; --accent-text: #0f2340; --border: #e4e8ee;
+      --shadow: rgba(201, 162, 75, 0.25); --max-width: 1080px;
+      /* status colours */
+      --ok-bg: #DDF3E6; --ok-bd: #2E8B57; --ok-tx: #1B5E3A;
+      --warn-bg: #FFF1CC; --warn-bd: #C98A00; --warn-tx: #7A5200;
+      --miss-bg: #FFE0DA; --miss-bd: #D2462E; --miss-tx: #8E2414;
+      --fake-bg: #EBDDFB; --fake-bd: #7B3FC4; --fake-tx: #4B1F86;
+      --na-bg: #ECEEF2; --na-bd: #8A93A3; --na-tx: #4A5261;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0; background: linear-gradient(160deg, var(--bg) 0%, #ffffff 55%, #f6f8fb 100%);
+      background-attachment: fixed; color: var(--text);
+      font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      line-height: 1.6;
+    }
+    .wrap { max-width: var(--max-width); margin: 0 auto; padding: 0 20px; }
+    .site-header { border-bottom: 1px solid var(--border); position: sticky; top: 0; background: rgba(255, 255, 255, 0.9); backdrop-filter: blur(10px); z-index: 10; }
+    .site-header .wrap { display: flex; align-items: center; justify-content: space-between; min-height: 68px; flex-wrap: wrap; max-width: 980px; }
+    .brand { display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: 1.2rem; color: var(--text); text-decoration: none; }
+    .logo-mark { width: 34px; height: 34px; flex-shrink: 0; transition: transform 0.3s ease; }
+    .brand:hover .logo-mark { transform: rotate(-8deg) scale(1.08); }
+    .tabs { display: flex; gap: 4px; flex-wrap: wrap; }
+    .tab { color: var(--muted); text-decoration: none; padding: 9px 14px; border-radius: 999px; font-size: 0.88rem; transition: background 0.2s ease, color 0.2s ease; cursor: pointer; background: none; border: none; font-family: inherit; }
+    .tab:hover { background: var(--panel-hover); color: var(--text); }
+    .tab.active { background: linear-gradient(120deg, var(--accent) 0%, var(--accent-3) 100%); color: var(--accent-text); font-weight: 600; }
+
+    .content { padding: 36px 20px 60px; }
+    h1 { font-family: "Lora", Georgia, "Times New Roman", serif; font-size: 1.8rem; margin: 0 0 4px; }
+    h2 { font-family: "Lora", Georgia, "Times New Roman", serif; font-size: 1.25rem; margin: 0 0 12px; color: var(--accent-strong); }
+    .subtitle { color: var(--muted); font-size: 0.95rem; margin: 0 0 24px; max-width: 760px; }
+
+    .panel { background: var(--panel); border: 1px solid var(--border); border-radius: 16px; padding: 24px; margin-bottom: 22px; }
+    .inputs { display: grid; grid-template-columns: 1.4fr 1fr; gap: 18px; }
+    @media (max-width: 820px) { .inputs { grid-template-columns: 1fr; } }
+    label.box-label { display: block; font-weight: 700; font-size: 0.92rem; margin-bottom: 6px; }
+    label.box-label span { font-weight: 400; color: var(--muted); font-size: 0.82rem; }
+    textarea {
+      width: 100%; min-height: 300px; resize: vertical; padding: 12px 14px; border-radius: 10px;
+      border: 1px solid var(--border); background: #ffffff; color: var(--text);
+      font-family: inherit; font-size: 0.9rem; line-height: 1.55;
+    }
+    textarea:focus { outline: 2px solid var(--accent); border-color: transparent; }
+    .controls { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; margin-top: 16px; }
+    .check { display: flex; align-items: center; gap: 8px; font-size: 0.88rem; color: var(--muted); }
+    .check input { width: 16px; height: 16px; accent-color: var(--accent-strong-2); }
+    .spacer { flex: 1; }
+    .privacy { font-size: 0.8rem; color: var(--muted); margin: 12px 0 0; }
+
+    button.action-btn {
+      padding: 10px 20px; font-size: 0.92rem; font-weight: 700; cursor: pointer; border: none;
+      border-radius: 10px; background: linear-gradient(120deg, var(--accent) 0%, var(--accent-3) 100%); color: var(--accent-text);
+      font-family: inherit;
+    }
+    button.action-btn:disabled { opacity: 0.55; cursor: progress; }
+    button.action-btn.secondary { background: transparent; border: 1px solid var(--border); color: var(--text); }
+    button.action-btn.secondary:hover { border-color: var(--accent); }
+    button.small { padding: 6px 12px; font-size: 0.82rem; }
+
+    #results { display: none; }
+    .style-line { font-size: 0.9rem; color: var(--muted); margin: -4px 0 16px; }
+    .style-line strong { color: var(--text); }
+    .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 12px; }
+    .stat { border: 1px solid var(--border); border-radius: 12px; padding: 12px 14px; background: #ffffff; }
+    .stat .n { font-size: 1.6rem; font-weight: 800; line-height: 1.1; font-variant-numeric: tabular-nums; }
+    .stat .l { font-size: 0.78rem; color: var(--muted); }
+    .stat.ok .n { color: var(--ok-bd); } .stat.warn .n { color: var(--warn-bd); }
+    .stat.miss .n { color: var(--miss-bd); } .stat.fake .n { color: var(--fake-bd); }
+
+    .progress { margin-top: 16px; display: none; }
+    .progress .bar { height: 8px; background: var(--panel-hover); border-radius: 99px; overflow: hidden; }
+    .progress .fill { height: 100%; width: 0; background: linear-gradient(90deg, var(--accent), var(--accent-3)); transition: width 0.3s ease; }
+    .progress .txt { font-size: 0.82rem; color: var(--muted); margin-top: 6px; }
+
+    .legend { display: flex; flex-wrap: wrap; gap: 8px 16px; font-size: 0.82rem; margin-bottom: 14px; }
+    .legend span { display: inline-flex; align-items: center; gap: 6px; }
+    .sw { width: 14px; height: 14px; border-radius: 4px; border: 2px solid; display: inline-block; }
+
+    .cit { border-radius: 4px; padding: 1px 2px; border-bottom: 2px solid; cursor: pointer; }
+    .s-ok   { background: var(--ok-bg);   border-color: var(--ok-bd);   color: var(--ok-tx); }
+    .s-warn { background: var(--warn-bg); border-color: var(--warn-bd); color: var(--warn-tx); }
+    .s-miss { background: var(--miss-bg); border-color: var(--miss-bd); color: var(--miss-tx); }
+    .s-fake { background: var(--fake-bg); border-color: var(--fake-bd); color: var(--fake-tx); }
+    .s-na   { background: var(--na-bg);   border-color: var(--na-bd);   color: var(--na-tx); }
+    .body-view { white-space: pre-wrap; font-size: 0.93rem; line-height: 1.8; max-height: 520px; overflow: auto; padding: 16px; background: #ffffff; border: 1px solid var(--border); border-radius: 10px; }
+
+    .table-wrap { overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; font-size: 0.86rem; }
+    th, td { text-align: left; vertical-align: top; padding: 10px 10px; border-bottom: 1px solid var(--border); }
+    th { font-size: 0.76rem; text-transform: uppercase; letter-spacing: 0.04em; color: var(--muted); background: #f6f8fb; position: sticky; top: 0; }
+    td.num { font-variant-numeric: tabular-nums; white-space: nowrap; }
+    .pill { display: inline-block; padding: 2px 9px; border-radius: 99px; font-size: 0.74rem; font-weight: 700; border: 1px solid; white-space: nowrap; }
+    .note { color: var(--muted); font-size: 0.8rem; margin-top: 4px; }
+    .note a { color: var(--accent-strong); }
+    tr.flash { animation: flash 1.6s ease; }
+    @keyframes flash { 0%, 40% { background: #FFE9B8; } 100% { background: transparent; } }
+    .filter-row { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
+    .filter-row button.on { background: var(--accent-strong); color: #fff; border-color: var(--accent-strong); }
+
+    .corrected { font-size: 0.9rem; line-height: 1.6; }
+    .corrected p { margin: 0 0 10px; padding-left: 2em; text-indent: -2em; }
+    .corrected .pill { text-indent: 0; margin-left: 4px; }
+    .corrected p.changed { background: #FFF8E3; border-radius: 6px; }
+    .head-row { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; justify-content: space-between; margin-bottom: 12px; }
+    .head-row h2 { margin: 0; }
+    .disclaimer { font-size: 0.8rem; color: var(--muted); background: #f6f8fb; border-left: 3px solid var(--accent); padding: 10px 12px; border-radius: 6px; margin-top: 14px; }
+    .toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); background: var(--accent-strong); color: #fff; padding: 10px 18px; border-radius: 10px; font-size: 0.88rem; opacity: 0; transition: opacity 0.3s; pointer-events: none; z-index: 50; }
+    .toast.show { opacity: 1; }
+
+    .site-footer { border-top: 1px solid var(--border); padding: 26px 0; color: var(--muted); font-size: 0.85rem; text-align: center; margin-top: 40px; }
+  </style>
+</head>
+<body>
+
+<link rel="stylesheet" href="css/tool-chrome.css?v=1">
+<header class="trx-hdr">
+  <div class="trx-wrap">
+    <a href="index.html" class="trx-brand"><img src="media/brand/logo-icon.png" alt="The Research School logo"><span>TheResearchSchool<small>a subsidiary of Intellique Research School Pvt Ltd</small></span></a>
+    <nav class="trx-nav" id="trx-nav" aria-label="Main">
+      <a href="index.html">Home</a><a href="academic-research.html">Academic Research</a><a href="business-research.html">Business Research</a><a href="trusted-by-clients.html">Trusted by Clients</a><a href="media-coverage.html">Media Coverage</a><a href="webinars.html">Courses &amp; Webinars</a><a href="resources.html" class="on" aria-current="page">Resources</a>
+    </nav>
+    <button class="trx-menu" type="button" aria-label="Open menu" aria-expanded="false" aria-controls="trx-nav"><span></span><span></span><span></span></button>
+  </div>
+</header>
+
+<div class="wrap content">
+  <h1>Reference Checker</h1>
+  <p class="subtitle">Paste your manuscript and its reference list. Every in-text citation is mapped to its reference, mismatches and missing entries are highlighted, and each reference is looked up in CrossRef and OpenAlex to catch ones that may be hallucinated or retracted.</p>
+
+  <div class="panel">
+    <div class="inputs">
+      <div>
+        <label class="box-label" for="bodyText">1. Manuscript text <span>— with in-text citations</span></label>
+        <textarea id="bodyText" placeholder="Paste the body of your paper here, e.g.&#10;&#10;Technology acceptance has been widely studied (Davis, 1989; Venkatesh et al., 2003). Fornell and Larcker (1981) proposed..."></textarea>
+      </div>
+      <div>
+        <label class="box-label" for="refText">2. Reference list <span>— one reference per line</span></label>
+        <textarea id="refText" placeholder="Paste your reference list here, e.g.&#10;&#10;Davis, F. D. (1989). Perceived usefulness, perceived ease of use, and user acceptance of information technology. MIS Quarterly, 13(3), 319–340. https://doi.org/10.2307/249008"></textarea>
+      </div>
+    </div>
+    <div class="controls">
+      <button class="action-btn" id="runBtn">Check references</button>
+      <button class="action-btn secondary" id="sampleBtn">Try a sample</button>
+      <button class="action-btn secondary" id="clearBtn">Clear</button>
+      <span class="spacer"></span>
+      <label class="check"><input type="checkbox" id="onlineChk" checked> Verify references online (CrossRef + OpenAlex)</label>
+    </div>
+    <p class="privacy">Runs in your browser and nothing is stored. With online verification on, only your reference entries are sent to the free CrossRef and OpenAlex scholarly databases — never your manuscript text.</p>
+    <div class="progress" id="progress"><div class="bar"><div class="fill" id="progressFill"></div></div><div class="txt" id="progressTxt"></div></div>
+  </div>
+
+  <div id="results">
+    <div class="panel">
+      <div class="head-row">
+        <h2>Summary</h2>
+        <div style="display:flex; gap:8px; flex-wrap:wrap">
+          <button class="action-btn secondary small" id="dlHtmlBtn">Download report (HTML)</button>
+          <button class="action-btn secondary small" id="dlCsvBtn">Download table (CSV)</button>
+        </div>
+      </div>
+      <p class="style-line" id="styleLine"></p>
+      <div class="stats" id="stats"></div>
+    </div>
+
+    <div class="panel">
+      <h2>Your text, highlighted</h2>
+      <div class="legend">
+        <span><i class="sw s-ok"></i>Matched &amp; verified</span>
+        <span><i class="sw s-warn"></i>Check details (year, spelling, DOI)</span>
+        <span><i class="sw s-miss"></i>Not in reference list</span>
+        <span><i class="sw s-fake"></i>Possibly hallucinated / retracted</span>
+        <span><i class="sw s-na"></i>Matched, not verified online</span>
+      </div>
+      <div class="body-view" id="bodyView"></div>
+      <p class="note">Click a highlighted citation to jump to its reference. Hover for details.</p>
+    </div>
+
+    <div class="panel">
+      <h2>Citation → reference map</h2>
+      <div class="filter-row" id="citFilters"></div>
+      <div class="table-wrap"><table id="citTable"></table></div>
+    </div>
+
+    <div class="panel">
+      <h2>Reference list check</h2>
+      <div class="filter-row" id="refFilters"></div>
+      <div class="table-wrap"><table id="refTable"></table></div>
+      <div class="disclaimer"><strong>How to read this:</strong> “Possibly hallucinated” means no matching record was found in CrossRef or OpenAlex, or the DOI points to a different paper. Books, reports, theses, websites and very recent papers are often not indexed, so those are marked “Not indexed — check manually” rather than flagged. Always confirm a flag before removing a reference.</div>
+    </div>
+
+    <div class="panel">
+      <div class="head-row">
+        <h2>Corrected reference list (APA 7)</h2>
+        <button class="action-btn small" id="copyBtn">Copy list</button>
+      </div>
+      <p class="note" style="margin-top:-6px; margin-bottom:12px">Entries confirmed in CrossRef/OpenAlex are rebuilt from the database record (highlighted). Others are kept as you wrote them. Check capitalisation of titles: APA uses sentence case.</p>
+      <div class="corrected" id="corrected"></div>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<footer class="trx-ftr">
+  <div class="trx-wrap">
+    <span>© 2026 The Research School. All rights reserved.</span>
+    <span><a href="resources.html">Resources</a> · <a href="index.html">Home</a> · <a href="mailto:info@theresearchschool.com">info@theresearchschool.com</a></span>
+  </div>
+</footer>
+<script>(function(){var b=document.querySelector(".trx-menu"),n=document.getElementById("trx-nav");if(b&&n)b.addEventListener("click",function(){var o=n.classList.toggle("open");b.setAttribute("aria-expanded",o?"true":"false");});})();</script>
+
+<script>
+'use strict';
+/* =====================================================================
+   Reference Checker — The Research School
+   1. Parse reference list        2. Extract in-text citations
+   3. Match citations ↔ references 4. Verify references (CrossRef/OpenAlex)
+   5. Render highlights, tables, corrected APA list, downloads
+   ===================================================================== */
+
+// ---------- helpers ----------
+const $ = id => document.getElementById(id);
+const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const norm = s => String(s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[^a-z]/g, '');
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+function lev(a, b) {
+  if (a === b) return 0;
+  const m = a.length, n = b.length; if (!m) return n; if (!n) return m;
+  let prev = Array.from({length: n + 1}, (_, i) => i);
+  for (let i = 1; i <= m; i++) {
+    const cur = [i];
+    for (let j = 1; j <= n; j++) cur[j] = Math.min(prev[j] + 1, cur[j - 1] + 1, prev[j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1));
+    prev = cur;
+  }
+  return prev[n];
+}
+const STOP = new Set('the and for with from into onto that this these those their there then than are was were been being have has had its our your not but via per use using used among between within upon about over under what when where which who whom how why can could may might will would shall should does did also more most some such only other new study role effect effects impact analysis approach evidence'.split(' '));
+function tokens(s) {
+  return String(s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase()
+    .replace(/[^a-z0-9\s]/g, ' ').split(/\s+/).filter(t => t.length > 2 && !STOP.has(t));
+}
+function containment(aTokens, bSet) {
+  if (!aTokens.length) return 0;
+  let hit = 0; aTokens.forEach(t => { if (bSet.has(t)) hit++; });
+  return hit / aTokens.length;
+}
+
+const YEAR_RE = /(1[5-9]\d\d|20\d\d)([a-z])?|n\.\s?d\./g;
+const PARTICLES = '(?:(?:van|von|de|der|den|da|di|du|le|la|del|della|dos|das|ten|ter|bin|al|el)\\s+)*';
+const SURNAME = "\\p{Lu}[\\p{L}'’\\-]+";
+
+// ---------- 1. reference parsing ----------
+function splitReferences(raw) {
+  let text = raw.replace(/\r/g, '').replace(/^\s*(references|reference list|bibliography|works cited|literature cited)\s*:?\s*\n/i, '');
+  let chunks;
+  if (/\n\s*\n/.test(text.trim())) {
+    chunks = text.split(/\n\s*\n/);
+  } else {
+    const lines = text.split('\n').map(l => l.trim()).filter(Boolean);
+    const startRe = new RegExp('^(\\[\\d+\\]|\\d{1,3}[.)]\\s|' + PARTICLES + SURNAME + "(?:\\s" + SURNAME + ")?,\\s*(?:\\p{Lu}\\.|\\p{Lu}\\p{Ll}))", 'u');
+    chunks = [];
+    lines.forEach(l => {
+      const prev = chunks[chunks.length - 1];
+      const prevEnds = prev && /([.)]|\d|\/\S+)$/.test(prev);
+      const hasYearEarly = /\((1[5-9]\d\d|20\d\d)[a-z]?|n\.d\.\)/.test(l.slice(0, 160));
+      if (!prev || startRe.test(l) || (prevEnds && hasYearEarly)) chunks.push(l);
+      else chunks[chunks.length - 1] = prev + ' ' + l;
+    });
+  }
+  return chunks.map(c => c.replace(/\s*\n\s*/g, ' ').trim()).filter(c => c.length > 8);
+}
+
+function parseReference(text, idx) {
+  const ref = { idx, raw: text, number: null, surnames: [], org: null, year: null, yearSuffix: '', title: '', doi: null, url: null, citedBy: [] };
+  let t = text;
+  const num = t.match(/^\s*(?:\[(\d+)\]|(\d{1,3})[.)])\s*/);
+  if (num) { ref.number = parseInt(num[1] || num[2], 10); t = t.slice(num[0].length); }
+  ref.body = t;
+
+  const doi = t.match(/10\.\d{4,9}\/[^\s"<>]+/i);
+  if (doi) ref.doi = doi[0].replace(/[.,;)\]]+$/, '');
+  const url = t.match(/https?:\/\/[^\s<>"]+/i);
+  if (url) ref.url = url[0].replace(/[.,;)]+$/, '');
+
+  // year: prefer (YYYY) form, else first plausible year
+  let ym = t.match(/\((1[5-9]\d\d|20\d\d)([a-z])?[^)]*\)|\((n\.\s?d\.)\)/);
+  let yearPos = -1;
+  if (ym) { ref.year = ym[3] ? 'n.d.' : ym[1]; ref.yearSuffix = ym[2] || ''; yearPos = ym.index; }
+  else {
+    const y2 = t.replace(/10\.\d{4,9}\/\S+/g, ' ').match(/\b(1[5-9]\d\d|20\d\d)([a-z])?\b/);
+    if (y2) { ref.year = y2[1]; ref.yearSuffix = y2[2] || ''; yearPos = t.indexOf(y2[0]); }
+  }
+
+  // title
+  const quoted = t.match(/["“]([^"”]{8,}?)[,.]?["”]/);
+  if (quoted) ref.title = quoted[1];
+  else {
+    const afterYear = t.match(/\((?:1[5-9]\d\d|20\d\d)[a-z]?[^)]*\)|\(n\.\s?d\.\)/);
+    let rest = afterYear ? t.slice(afterYear.index + afterYear[0].length) : (yearPos >= 0 ? t.slice(yearPos + 4) : '');
+    rest = rest.replace(/^[a-z]?[.,:\s]+/, '');
+    const tm = rest.match(/^(.+?[.?!])(\s|$)/);
+    if (tm) ref.title = tm[1].replace(/[.]$/, '');
+  }
+
+  // authors
+  let authorPart;
+  if (quoted) authorPart = t.slice(0, quoted.index);
+  else authorPart = yearPos >= 0 ? t.slice(0, yearPos) : t.split('.').slice(0, 1).join('.');
+  const apaRe = new RegExp('(' + PARTICLES + SURNAME + '(?:\\s' + SURNAME + ')?),\\s*(?:\\p{Lu}[.\\-]\\s*)+', 'gu');
+  let m; const s = [];
+  while ((m = apaRe.exec(authorPart))) s.push(m[1]);
+  if (!s.length) {
+    // initials-first (IEEE / Vancouver "Smith J, Lee K")
+    const ieee = new RegExp('(?:\\p{Lu}\\.\\s*-?)+\\s*(' + SURNAME + ')', 'gu');
+    while ((m = ieee.exec(authorPart))) s.push(m[1]);
+    if (!s.length) {
+      const vanc = new RegExp('(' + SURNAME + ')\\s+\\p{Lu}{1,3}(?=[,.]|$)', 'gu');
+      while ((m = vanc.exec(authorPart))) s.push(m[1]);
+    }
+  }
+  if (s.length) ref.surnames = s.map(x => x.trim());
+  else {
+    const org = authorPart.replace(/[.,\s]+$/, '').trim();
+    if (org) { ref.org = org; ref.surnames = [org]; }
+  }
+  ref.first = ref.surnames[0] || '';
+  ref.firstN = norm(lastWordIfParticle(ref.first));
+  ref.tokens = new Set(tokens(text));
+  ref.looksArticle = !!(ref.doi || /\b\d+\s*\(\s*\d+[^)]*\)|\bvol\.|\bjournal\b|\bquarterly\b|\breview\b|\bproceedings\b|\btransactions\b/i.test(text));
+  ref.looksGrey = !ref.doi && (/\b(press|publisher|publishing|retrieved|accessed|available at|report|thesis|dissertation|working paper|ed\.|eds\.|edition|isbn|blog|website)\b/i.test(text) || (!!ref.url && !ref.looksArticle));
+  return ref;
+}
+function lastWordIfParticle(s) { return s; }
+
+// ---------- 2. citation extraction ----------
+const PREFIX_RE = /^(?:see also|see|e\.g\.,?|i\.e\.,?|cf\.|for example,?|for a review,? see|as cited in|reviewed in|also)\s+/i;
+function parseAuthors(str) {
+  let a = str.replace(PREFIX_RE, '').replace(/['’]s$/, '').trim().replace(/[,\s]+$/, '');
+  const etAl = /\bet\s+al\.?/i.test(a);
+  a = a.replace(/,?\s*\bet\s+al\.?/i, '').trim();
+  const list = a.split(/\s*,\s*|\s+(?:and|&)\s+/).map(x => x.trim()).filter(Boolean);
+  return { list, etAl, display: str.trim() };
+}
+function isAuthorish(s) {
+  const a = s.replace(PREFIX_RE, '').trim();
+  return /^\p{Lu}/u.test(a) && a.length <= 120 && !/^(Table|Figure|Fig\.|Appendix|Section|Chapter|Eq\.|Equation|Model|Study|Hypothesis|H\d|N\s*=|n\s*=)/.test(a);
+}
+function yearsIn(s) {
+  const out = []; let m; YEAR_RE.lastIndex = 0;
+  while ((m = YEAR_RE.exec(s))) out.push({ year: m[1] ? m[1] : 'n.d.', suffix: m[2] || '', index: m.index, len: m[0].length });
+  return out;
+}
+const NARR_GROUP_RE = /^\s*(?:(?:1[5-9]\d\d|20\d\d)[a-z]?|n\.\s?d\.)(?:\s*[,;]\s*(?:(?:1[5-9]\d\d|20\d\d)[a-z]?|n\.\s?d\.))*(?:\s*,\s*(?:pp?\.|para\.|chap\.)\s*[\d\-–]+)?\s*$/;
+const NARR_BEFORE_RE = new RegExp('(' + PARTICLES + SURNAME + '(?:(?:,\\s*' + SURNAME + ')*,?\\s+(?:and|&)\\s+' + PARTICLES + SURNAME + '|\\s+et\\s+al\\.?)?)(?:[\'’]s)?\\s*$', 'u');
+
+function extractAuthorDate(body) {
+  const cits = [];
+  const parenRe = /\(([^()]{2,400})\)/g;
+  let m;
+  while ((m = parenRe.exec(body))) {
+    const inner = m[1], innerStart = m.index + 1;
+    if (!yearsIn(inner).length) continue;
+    if (NARR_GROUP_RE.test(inner)) {
+      // narrative: Author (2020)
+      const before = body.slice(Math.max(0, m.index - 160), m.index);
+      const nb = before.match(NARR_BEFORE_RE);
+      if (!nb) continue;
+      const authStart = m.index - (before.length - nb.index);
+      const auth = parseAuthors(nb[1]);
+      if (!auth.list.length || /^(In|The|This|A|An|As|By|For|And)$/.test(auth.list[0])) continue;
+      yearsIn(inner).forEach(y => cits.push({ kind: 'narrative', authors: auth, year: y.year, suffix: y.suffix, start: authStart, end: m.index + m[0].length, text: body.slice(authStart, m.index + m[0].length) }));
+      continue;
+    }
+    // parenthetical: (Smith, 2020; Jones & Lee, 2019a, p. 4)
+    let offset = 0, lastAuth = null;
+    inner.split(';').forEach(part => {
+      const partStart = innerStart + offset; offset += part.length + 1;
+      const clean = part.replace(/,?\s*(?:pp?\.|para\.|chap\.|ch\.)\s*[\d\-–,\s]+$/i, '');
+      const ys = yearsIn(clean);
+      if (!ys.length) return;
+      let authStr = clean.slice(0, ys[0].index).replace(/[,\s]+$/, '');
+      let auth;
+      if (!authStr.trim()) { if (!lastAuth) return; auth = lastAuth; }
+      else { if (!isAuthorish(authStr)) return; auth = parseAuthors(authStr); lastAuth = auth; }
+      if (!auth.list.length) return;
+      const lead = part.match(/^\s*/)[0].length;
+      const trail = part.match(/\s*$/)[0].length;
+      ys.forEach(y => cits.push({ kind: 'parenthetical', authors: auth, year: y.year, suffix: y.suffix, start: partStart + lead, end: partStart + part.length - trail, text: part.trim() }));
+    });
+  }
+  return cits;
+}
+
+function extractNumeric(body) {
+  const cits = [];
+  const re = /\[(\d{1,3}(?:\s*[-–,]\s*\d{1,3})*)\]/g;
+  let m;
+  while ((m = re.exec(body))) {
+    const nums = [];
+    m[1].split(',').forEach(seg => {
+      const r = seg.split(/[-–]/).map(x => parseInt(x, 10));
+      if (r.length === 2 && r[1] >= r[0] && r[1] - r[0] < 50) { for (let i = r[0]; i <= r[1]; i++) nums.push(i); }
+      else nums.push(r[0]);
+    });
+    nums.forEach(n => cits.push({ kind: 'numeric', number: n, start: m.index, end: m.index + m[0].length, text: m[0] }));
+  }
+  return cits;
+}
+
+// ---------- 3. matching ----------
+function matchAuthorDate(c, refs) {
+  const first = c.authors.list[0];
+  const fN = norm(first);
+  const yr = c.year, sf = c.suffix;
+  const sameYear = r => r.year === yr && (!sf || !r.yearSuffix || r.yearSuffix === sf);
+  const firstMatch = r => r.firstN && (r.firstN === fN || (r.org && (norm(r.org).includes(fN) || fN.includes(norm(r.org)))));
+  let cands = refs.filter(firstMatch);
+  const notes = [];
+  if (cands.length) {
+    let exact = cands.filter(sameYear);
+    if (exact.length) {
+      // refine by co-author when two authors cited
+      if (exact.length > 1 && c.authors.list.length >= 2) {
+        const s2 = norm(c.authors.list[1]);
+        const f = exact.filter(r => r.surnames.slice(1).some(x => norm(x) === s2));
+        if (f.length) exact = f;
+      }
+      if (exact.length > 1 && !sf) {
+        return { ref: exact[0], status: 'warn', note: `Ambiguous: ${exact.length} references by ${first} (${yr}). Add a/b suffixes to years.` };
+      }
+      const r = exact[0];
+      // author-count checks
+      const n = r.surnames.length;
+      if (c.authors.list.length === 2 && !c.authors.etAl && n >= 2) {
+        const s2 = norm(c.authors.list[1]);
+        if (!r.surnames.slice(1).some(x => norm(x) === s2)) notes.push(`Second author “${c.authors.list[1]}” not found in reference`);
+      }
+      if (c.authors.etAl && n === 1 && !r.org) notes.push('Uses “et al.” but reference has a single author');
+      if (!c.authors.etAl && c.authors.list.length === 1 && n >= 3) notes.push(`Reference has ${n} authors — APA 7 uses “${first} et al.”`);
+      if (!c.authors.etAl && c.authors.list.length === 1 && n === 2) notes.push(`Reference has two authors — cite both (${r.surnames[0]} & ${r.surnames[1]})`);
+      if (sf && !r.yearSuffix) notes.push(`Citation uses ${yr}${sf} but reference has no “${sf}” suffix`);
+      return { ref: r, status: notes.length ? 'warn' : 'ok', note: notes.join('; ') };
+    }
+    const near = cands.slice().sort((a, b) => Math.abs((+a.year || 0) - (+yr || 0)) - Math.abs((+b.year || 0) - (+yr || 0)))[0];
+    return { ref: near, status: 'warn', note: `Year mismatch: cited as ${yr}${sf}, reference says ${near.year || 'no year'}${near.yearSuffix || ''}` };
+  }
+  // fuzzy surname (spelling)
+  if (fN.length >= 4) {
+    const maxD = r => Math.min(2, (fN.length > 7 ? 2 : 1) + (sameYear(r) ? 1 : 0));
+    const fuzzy = refs.filter(r => r.firstN && r.firstN.length >= 4 && lev(r.firstN, fN) <= maxD(r))
+      .sort((a, b) => (sameYear(b) - sameYear(a)) || lev(a.firstN, fN) - lev(b.firstN, fN));
+    if (fuzzy.length) {
+      const r = fuzzy[0];
+      const yNote = sameYear(r) ? '' : ` and year differs (${r.year})`;
+      return { ref: r, status: 'warn', note: `Spelling mismatch: “${first}” vs “${r.first}” in reference list${yNote}` };
+    }
+  }
+  // co-author listed first?
+  const alt = refs.find(r => r.surnames.slice(1).some(x => norm(x) === fN) && sameYear(r));
+  if (alt) return { ref: alt, status: 'warn', note: `Author order: ${first} is not the first author of this reference (first author is ${alt.first})` };
+  return { ref: null, status: 'miss', note: 'No matching entry in the reference list' };
+}
+
+function matchNumeric(c, refs) {
+  let r = refs.find(x => x.number === c.number);
+  if (!r && !refs.some(x => x.number != null)) r = refs[c.number - 1];
+  if (!r) return { ref: null, status: 'miss', note: `No reference numbered ${c.number}` };
+  return { ref: r, status: 'ok', note: '' };
+}
+
+// ---------- 4. online verification ----------
+async function fetchJSON(url, ms = 15000) {
+  const ctl = new AbortController(); const t = setTimeout(() => ctl.abort(), ms);
+  try {
+    const res = await fetch(url, { signal: ctl.signal, headers: { 'Accept': 'application/json' } });
+    if (res.status === 404) return { notFound: true };
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    return await res.json();
+  } finally { clearTimeout(t); }
+}
+function fromCrossref(it) {
+  if (!it) return null;
+  const dp = (it.issued && it.issued['date-parts'] && it.issued['date-parts'][0]) || (it['published-print'] && it['published-print']['date-parts'][0]) || (it['published-online'] && it['published-online']['date-parts'][0]) || [];
+  return {
+    source: 'CrossRef', doi: it.DOI, title: (it.title && it.title[0]) || '', year: dp[0] ? String(dp[0]) : '',
+    authors: (it.author || []).map(a => ({ family: a.family || a.name || '', given: a.given || '' })),
+    container: (it['container-title'] && it['container-title'][0]) || '', volume: it.volume || '', issue: it.issue || '', page: it.page || '',
+    type: it.type || '', publisher: it.publisher || '', retracted: /^\s*(retracted|retraction)\b/i.test((it.title && it.title[0]) || '')
+  };
+}
+function fromOpenAlex(w) {
+  if (!w) return null;
+  const b = w.biblio || {};
+  return {
+    source: 'OpenAlex', doi: w.doi ? w.doi.replace(/^https?:\/\/doi\.org\//i, '') : '', title: w.display_name || w.title || '', year: w.publication_year ? String(w.publication_year) : '',
+    authors: (w.authorships || []).map(a => { const n = (a.author && a.author.display_name) || ''; const p = n.trim().split(/\s+/); return { family: p.length > 1 ? p.pop() : n, given: p.join(' ') }; }),
+    container: (w.primary_location && w.primary_location.source && w.primary_location.source.display_name) || '',
+    volume: b.volume || '', issue: b.issue || '', page: b.first_page ? (b.first_page + (b.last_page && b.last_page !== b.first_page ? '–' + b.last_page : '')) : '',
+    type: w.type || '', retracted: !!w.is_retracted
+  };
+}
+function scoreRecord(rec, ref) {
+  if (!rec || !rec.title) return { total: 0, title: 0 };
+  const ct = tokens(rec.title);
+  let title = containment(ct, ref.tokens);
+  if (ref.title) { const rt = tokens(ref.title); if (rt.length) title = (title + containment(rt, new Set(ct))) / 2; }
+  if (ct.length < 3) title *= 0.7;
+  const fam = norm((rec.authors[0] || {}).family);
+  let author = 0;
+  if (fam && ref.firstN) author = fam === ref.firstN ? 1 : (lev(fam, ref.firstN) <= 1 ? 0.7 : 0);
+  if (!author && rec.authors.some(a => ref.tokens.has(norm(a.family)))) author = 0.5;
+  if (!rec.authors.length) author = 0.5;
+  let year = 0;
+  if (rec.year && ref.year) { const d = Math.abs(+rec.year - +ref.year); year = d === 0 ? 1 : d === 1 ? 0.6 : 0; }
+  return { total: 0.6 * title + 0.25 * author + 0.15 * year, title, author, year };
+}
+function compareDetails(rec, ref) {
+  const d = [];
+  if (rec.year && ref.year && rec.year !== ref.year) d.push(`database year is ${rec.year} (you have ${ref.year})`);
+  const fam = (rec.authors[0] || {}).family;
+  if (fam && ref.firstN && norm(fam) !== ref.firstN) d.push(`first author in database is “${fam}” (you have “${ref.first}”)`);
+  if (ref.doi && rec.doi && ref.doi.toLowerCase() !== rec.doi.toLowerCase()) d.push(`correct DOI is ${rec.doi}`);
+  if (!ref.doi && rec.doi) d.push(`DOI missing — add https://doi.org/${rec.doi}`);
+  return d;
+}
+async function searchCandidates(ref) {
+  const q = (ref.title && ref.title.length > 15 ? ref.title + ' ' + (ref.first || '') : ref.body).slice(0, 300);
+  const out = [];
+  try {
+    const cr = await fetchJSON('https://api.crossref.org/works?rows=4&select=DOI,title,author,issued,published-print,published-online,container-title,volume,issue,page,type,publisher&query.bibliographic=' + encodeURIComponent(ref.body.slice(0, 400)));
+    ((cr.message && cr.message.items) || []).forEach(it => out.push(fromCrossref(it)));
+  } catch (e) { out.err = (out.err || 0) + 1; }
+  let best = out.map(r => ({ r, s: scoreRecord(r, ref) })).sort((a, b) => b.s.total - a.s.total)[0];
+  if (!best || best.s.total < 0.8) {
+    try {
+      const oa = await fetchJSON('https://api.openalex.org/works?per-page=4&search=' + encodeURIComponent(q.replace(/[:,?!"“”]/g, ' ')));
+      ((oa && oa.results) || []).forEach(w => out.push(fromOpenAlex(w)));
+    } catch (e) { out.err = (out.err || 0) + 1; }
+  }
+  return out;
+}
+async function checkRetraction(doi, rec) {
+  if (rec && rec.retracted) return true;
+  try {
+    const w = await fetchJSON('https://api.openalex.org/works/https://doi.org/' + encodeURIComponent(doi).replace(/%2F/g, '/'));
+    if (w && w.is_retracted) return true;
+  } catch (e) {}
+  return false;
+}
+
+async function verifyReference(ref) {
+  const v = { status: 'na', label: 'Not checked', notes: [], record: null };
+  let doiRec = null, doiBad = false, doiOther = false;
+  if (ref.doi) {
+    try {
+      const r = await fetchJSON('https://api.crossref.org/works/' + encodeURIComponent(ref.doi).replace(/%2F/g, '/'));
+      if (r.notFound) {
+        // DOI may be registered with DataCite etc. — try OpenAlex before calling it invalid
+        try { const w = await fetchJSON('https://api.openalex.org/works/https://doi.org/' + encodeURIComponent(ref.doi).replace(/%2F/g, '/')); if (w && !w.notFound) doiRec = fromOpenAlex(w); } catch (e) {}
+        if (!doiRec) doiBad = true;
+      } else doiRec = fromCrossref(r.message);
+    } catch (e) { v.notes.push('DOI lookup failed (network)'); }
+    if (doiRec) {
+      const s = scoreRecord(doiRec, ref);
+      if (s.title >= 0.6 || s.total >= 0.7) {
+        v.record = doiRec;
+        const diffs = compareDetails(doiRec, ref);
+        const retracted = await checkRetraction(doiRec.doi || ref.doi, doiRec);
+        if (retracted) return { status: 'fake', label: 'Retracted', notes: ['This paper has been retracted — remove it or cite the retraction notice'], record: doiRec };
+        if (diffs.length) return { status: 'warn', label: 'Verified — details differ', notes: diffs, record: doiRec };
+        return { status: 'ok', label: 'Verified', notes: [`DOI resolves to the cited paper (${doiRec.source})`], record: doiRec };
+      }
+      doiOther = true;
+    }
+  }
+  // search by text
+  const cands = await searchCandidates(ref);
+  const scored = cands.map(r => ({ r, s: scoreRecord(r, ref) })).sort((a, b) => b.s.total - a.s.total);
+  const best = scored[0];
+  if (best && best.s.total >= 0.8 && best.s.title >= 0.75) {
+    const rec = best.r; const diffs = compareDetails(rec, ref);
+    if (doiBad) diffs.unshift(`your DOI ${ref.doi} does not resolve`);
+    if (doiOther) diffs.unshift(`your DOI points to a different paper (“${trunc(doiRec.title, 70)}”)`);
+    const retracted = rec.doi ? await checkRetraction(rec.doi, rec) : rec.retracted;
+    if (retracted) return { status: 'fake', label: 'Retracted', notes: ['This paper has been retracted — remove it or cite the retraction notice'], record: rec };
+    return { status: diffs.length ? 'warn' : 'ok', label: diffs.length ? 'Verified — details differ' : 'Verified', notes: diffs.length ? diffs : [`Found in ${rec.source}`], record: rec };
+  }
+  if (cands.err >= 2 && !cands.length) return { status: 'na', label: 'Could not check', notes: ['Database lookup failed (network). Try again.'], record: null };
+  if (doiOther) return { status: 'fake', label: 'Possibly hallucinated', notes: [`DOI points to a different paper: “${trunc(doiRec.title, 90)}”`, 'No record matching your title/authors was found'], record: null };
+  if (doiBad) return { status: 'fake', label: 'Possibly hallucinated', notes: [`DOI ${ref.doi} does not exist`, 'No matching record found in CrossRef or OpenAlex'], record: null };
+  if (best && best.s.total >= 0.55) {
+    return { status: 'warn', label: 'Partial match', notes: [`Closest record: “${trunc(best.r.title, 90)}” (${best.r.year || 'n.d.'}, ${best.r.source})`, 'Title, authors or year differ — check this reference carefully'], record: null, closest: best.r };
+  }
+  if (ref.looksGrey || !ref.looksArticle) return { status: 'na', label: 'Not indexed — check manually', notes: ['Books, reports, theses and websites are often not in CrossRef/OpenAlex'], record: null };
+  return { status: 'fake', label: 'Possibly hallucinated', notes: ['No matching record found in CrossRef or OpenAlex', best ? `Closest record: “${trunc(best.r.title, 80)}” (${best.r.year || 'n.d.'})` : 'No similar titles found'], record: null };
+}
+const trunc = (s, n) => (s || '').length > n ? s.slice(0, n - 1) + '…' : (s || '');
+
+// ---------- APA 7 formatting from a record ----------
+function initials(given) {
+  return given.split(/\s+/).filter(Boolean).map(p => p.split('-').map(q => q[0] ? q[0].toUpperCase() + '.' : '').join('-')).join(' ');
+}
+function apaAuthors(list) {
+  const f = list.map(a => a.given ? `${a.family}, ${initials(a.given)}` : a.family).filter(Boolean);
+  if (!f.length) return '';
+  if (f.length === 1) return f[0];
+  if (f.length <= 20) return f.slice(0, -1).join(', ') + ', & ' + f[f.length - 1];
+  return f.slice(0, 19).join(', ') + ', . . . ' + f[f.length - 1];
+}
+function apaFromRecord(rec, ref) {
+  const authors = apaAuthors(rec.authors) || ref.org || '';
+  const year = rec.year || ref.year || 'n.d.';
+  // keep the author's own title wording (usually already sentence case) when it matches the record
+  let title = (rec.title || '').replace(/\s+/g, ' ').trim();
+  if (ref.title && ref.title.length > 10 && containment(tokens(rec.title), new Set(tokens(ref.title))) >= 0.85) title = ref.title.trim();
+  title = title.replace(/[.]$/, '');
+  // keep the author's full page range if the database only has the first page
+  let page = String(rec.page || '');
+  const refPages = ref.body.match(/,\s*(\d+)\s*[-–]\s*(\d+)\s*\./);
+  if (refPages && (!page || (!/[-–]/.test(page) && page === refPages[1]))) page = refPages[1] + '–' + refPages[2];
+  const end = /[?!]$/.test(title) ? '' : '.';
+  let html = `${esc(authors)}${/\.$/.test(authors) ? '' : '.'} (${esc(year)}${esc(ref.yearSuffix || '')}). `;
+  const isArticle = /journal|article|proceedings/.test(rec.type) || rec.container;
+  if (isArticle && rec.container) {
+    html += `${esc(title)}${end} <i>${esc(rec.container)}</i>`;
+    if (rec.volume) html += `, <i>${esc(rec.volume)}</i>`;
+    if (rec.issue) html += `(${esc(rec.issue)})`;
+    if (page) html += `, ${esc(page.replace('-', '–'))}`;
+    html += '.';
+  } else {
+    html += `<i>${esc(title)}</i>${end}`;
+    if (rec.publisher) html += ` ${esc(rec.publisher)}.`;
+  }
+  if (rec.doi) html += ` https://doi.org/${esc(rec.doi)}`;
+  return html;
+}
+
+// ---------- state & run ----------
+let STATE = null;
+const STATUS_RANK = { ok: 0, na: 1, warn: 2, miss: 3, fake: 4 };
+const STATUS_TEXT = { ok: 'Verified', na: 'Not verified', warn: 'Check', miss: 'Missing', fake: 'Flagged' };
+const pill = (cls, text) => `<span class="pill s-${cls}">${esc(text)}</span>`;
+
+function citationStatus(c) {
+  if (c.match.status === 'miss') return { cls: 'miss', label: 'Not in reference list', note: c.match.note };
+  const v = c.match.ref && c.match.ref.verify;
+  if (v && v.status === 'fake') return { cls: 'fake', label: v.label, note: [c.match.note, v.notes[0]].filter(Boolean).join(' · ') };
+  if (c.match.status === 'warn') return { cls: 'warn', label: 'Check details', note: c.match.note };
+  if (v && v.status === 'warn') return { cls: 'warn', label: 'Reference details differ', note: v.notes.join('; ') };
+  if (v && v.status === 'ok') return { cls: 'ok', label: 'Matched & verified', note: '' };
+  return { cls: 'na', label: v ? (v.status === 'pending' ? 'Checking…' : v.label) : 'Matched (not verified online)', note: v && v.notes ? v.notes.join('; ') : '' };
+}
+
+async function run() {
+  const body = $('bodyText').value;
+  const refRaw = $('refText').value;
+  if (!body.trim() || !refRaw.trim()) { toast('Paste both your manuscript text and your reference list.'); return; }
+  const refs = splitReferences(refRaw).map(parseReference);
+  const ad = extractAuthorDate(body);
+  const nu = extractNumeric(body);
+  const numericRefs = refs.filter(r => r.number != null).length;
+  const isNumeric = nu.length > ad.length || (nu.length && numericRefs > refs.length / 2 && ad.length < 3);
+  let cits = isNumeric ? nu : ad;
+  cits.forEach((c, i) => { c.id = i; c.match = isNumeric ? matchNumeric(c, refs) : matchAuthorDate(c, refs); if (c.match.ref) c.match.ref.citedBy.push(i); });
+
+  let style;
+  if (isNumeric) style = 'Numbered (IEEE / Vancouver)';
+  else {
+    const apa = refs.filter(r => /\)\.\s/.test(r.body.slice(0, 220)) && /\((1[5-9]\d\d|20\d\d|n\.d\.)/.test(r.body)).length;
+    style = apa >= refs.length / 2 ? 'Author–date (APA 7)' : 'Author–date (Harvard)';
+  }
+  STATE = { body, refs, cits, style, online: $('onlineChk').checked, done: false };
+  $('results').style.display = 'block';
+  renderAll();
+  $('results').scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+  if (STATE.online && refs.length) {
+    refs.forEach(r => r.verify = { status: 'pending', label: 'Checking…', notes: [] });
+    renderAll();
+    $('runBtn').disabled = true;
+    $('progress').style.display = 'block';
+    let done = 0; const total = refs.length; const queue = refs.slice();
+    const myState = STATE;
+    const worker = async () => {
+      while (queue.length) {
+        const r = queue.shift();
+        try { r.verify = await verifyReference(r); }
+        catch (e) { r.verify = { status: 'na', label: 'Could not check', notes: ['Lookup error: ' + e.message] }; }
+        done++;
+        if (STATE !== myState) return;
+        $('progressFill').style.width = (100 * done / total) + '%';
+        $('progressTxt').textContent = `Checking references in CrossRef and OpenAlex… ${done} of ${total}`;
+        renderAll();
+        await sleep(120);
+      }
+    };
+    await Promise.all([worker(), worker(), worker()]);
+    if (STATE === myState) {
+      $('progressTxt').textContent = `Done — ${total} references checked.`;
+      STATE.done = true; renderAll();
+    }
+    $('runBtn').disabled = false;
+  } else {
+    $('progress').style.display = 'none';
+    STATE.done = true;
+  }
+}
+
+// ---------- rendering ----------
+let citFilter = 'all', refFilter = 'all';
+function renderAll() { renderStats(); renderBody(); renderCitTable(); renderRefTable(); renderCorrected(); }
+
+function counts() {
+  const { refs, cits } = STATE;
+  const cs = cits.map(citationStatus);
+  return {
+    cits: cits.length,
+    refs: refs.length,
+    okC: cs.filter(s => s.cls === 'ok' || s.cls === 'na').length,
+    warnC: cs.filter(s => s.cls === 'warn').length,
+    missC: cs.filter(s => s.cls === 'miss').length,
+    fakeR: refs.filter(r => r.verify && r.verify.status === 'fake' && r.verify.label !== 'Retracted').length,
+    retR: refs.filter(r => r.verify && r.verify.label === 'Retracted').length,
+    uncited: refs.filter(r => !r.citedBy.length).length,
+    verR: refs.filter(r => r.verify && r.verify.status === 'ok').length,
+    warnR: refs.filter(r => r.verify && r.verify.status === 'warn').length
+  };
+}
+function renderStats() {
+  const k = counts();
+  $('styleLine').innerHTML = `Detected style: <strong>${esc(STATE.style)}</strong> · ${k.cits} in-text citations · ${k.refs} references` + (STATE.online ? '' : ' · online verification off');
+  const cards = [
+    ['', k.cits, 'In-text citations'],
+    ['ok', k.okC, 'Citations matched'],
+    ['warn', k.warnC, 'Citations to check'],
+    ['miss', k.missC, 'Missing from list'],
+    ['warn', k.uncited, 'Uncited references'],
+  ];
+  if (STATE.online) cards.push(['ok', k.verR, 'References verified'], ['warn', k.warnR, 'Details differ'], ['fake', k.fakeR, 'Possibly hallucinated'], ['fake', k.retR, 'Retracted']);
+  $('stats').innerHTML = cards.map(([c, n, l]) => `<div class="stat ${c}"><div class="n">${n}</div><div class="l">${l}</div></div>`).join('');
+}
+
+function renderBody() {
+  const { body, cits } = STATE;
+  // group citations by span
+  const spans = new Map();
+  cits.forEach(c => { const key = c.start + ':' + c.end; if (!spans.has(key)) spans.set(key, { start: c.start, end: c.end, ids: [] }); spans.get(key).ids.push(c.id); });
+  const list = [...spans.values()].sort((a, b) => a.start - b.start || b.end - a.end);
+  let html = '', pos = 0;
+  list.forEach(s => {
+    if (s.start < pos) return; // overlapping — skip
+    html += esc(body.slice(pos, s.start));
+    const sts = s.ids.map(i => citationStatus(cits[i]));
+    const worst = sts.reduce((a, b) => STATUS_RANK[b.cls] > STATUS_RANK[a.cls] ? b : a);
+    const tip = s.ids.map((i, j) => { const c = cits[i]; const r = c.match.ref; return `${c.kind === 'numeric' ? '[' + c.number + ']' : c.authors.display + ' ' + c.year + c.suffix}: ${sts[j].label}${sts[j].note ? ' — ' + sts[j].note : ''}${r ? ' → ' + trunc(r.raw, 90) : ''}`; }).join('\n');
+    html += `<span class="cit s-${worst.cls}" data-cit="${s.ids[0]}" title="${esc(tip)}">${esc(body.slice(s.start, s.end))}</span>`;
+    pos = s.end;
+  });
+  html += esc(body.slice(pos));
+  $('bodyView').innerHTML = html || '<em>No text.</em>';
+  if (!cits.length) $('bodyView').insertAdjacentHTML('afterbegin', '<p style="margin:0 0 10px;color:var(--miss-tx)"><strong>No in-text citations were detected.</strong> Supported formats: (Smith, 2020), Smith (2020), Smith et al. (2020), (Smith &amp; Lee, 2019; Khan, 2021), [1], [2–4].</p>');
+}
+
+function filterButtons(el, current, opts, onPick) {
+  el.innerHTML = opts.map(([k, l, n]) => `<button class="action-btn secondary small ${current === k ? 'on' : ''}" data-k="${k}">${l}${n != null ? ' (' + n + ')' : ''}</button>`).join('');
+  el.querySelectorAll('button').forEach(b => b.onclick = () => onPick(b.dataset.k));
+}
+
+function renderCitTable() {
+  const { cits } = STATE;
+  const rows = cits.map(c => ({ c, s: citationStatus(c) }));
+  const cnt = k => rows.filter(r => r.s.cls === k).length;
+  filterButtons($('citFilters'), citFilter, [['all', 'All', rows.length], ['issues', 'Issues only', rows.filter(r => r.s.cls !== 'ok' && r.s.cls !== 'na').length], ['miss', 'Missing', cnt('miss')], ['warn', 'Check', cnt('warn')], ['fake', 'Flagged', cnt('fake')]], k => { citFilter = k; renderCitTable(); });
+  const shown = rows.filter(r => citFilter === 'all' || (citFilter === 'issues' ? (r.s.cls !== 'ok' && r.s.cls !== 'na') : r.s.cls === citFilter));
+  $('citTable').innerHTML = `<thead><tr><th>#</th><th>In-text citation</th><th>Mapped reference</th><th>Status</th></tr></thead><tbody>` +
+    (shown.map(({ c, s }) => {
+      const r = c.match.ref;
+      const label = c.kind === 'numeric' ? `[${c.number}]` : `${esc(c.text)}${c.kind === 'parenthetical' ? '' : ''}`;
+      return `<tr><td class="num">${c.id + 1}</td><td>${label}${c.kind !== 'numeric' && yearsIn(c.text).length > 1 ? `<div class="note">year ${esc(c.year + c.suffix)}</div>` : ''}</td>
+        <td>${r ? `<a href="#ref-${r.idx}" class="jump" data-ref="${r.idx}" style="color:inherit">${esc(trunc(r.raw, 140))}</a>` : '<em style="color:var(--miss-tx)">— none —</em>'}</td>
+        <td>${pill(s.cls, s.label)}${s.note ? `<div class="note">${esc(s.note)}</div>` : ''}</td></tr>`;
+    }).join('') || `<tr><td colspan="4" class="note">Nothing to show.</td></tr>`) + '</tbody>';
+  $('citTable').querySelectorAll('a.jump').forEach(a => a.onclick = e => { e.preventDefault(); jumpToRef(+a.dataset.ref); });
+}
+
+function refStatus(r) {
+  const v = r.verify;
+  if (v && v.status === 'fake') return { cls: 'fake', label: v.label };
+  if (v && v.status === 'warn') return { cls: 'warn', label: v.label };
+  if (v && v.status === 'ok') return { cls: 'ok', label: v.label };
+  if (v && v.status === 'pending') return { cls: 'na', label: 'Checking…' };
+  if (v) return { cls: 'na', label: v.label };
+  return { cls: 'na', label: 'Not verified online' };
+}
+function renderRefTable() {
+  const { refs, cits } = STATE;
+  const rows = refs.map(r => ({ r, s: refStatus(r) }));
+  const cnt = k => rows.filter(x => x.s.cls === k).length;
+  filterButtons($('refFilters'), refFilter, [['all', 'All', rows.length], ['fake', 'Flagged', cnt('fake')], ['warn', 'Details differ', cnt('warn')], ['uncited', 'Uncited', refs.filter(r => !r.citedBy.length).length], ['ok', 'Verified', cnt('ok')]], k => { refFilter = k; renderRefTable(); });
+  const shown = rows.filter(x => refFilter === 'all' || (refFilter === 'uncited' ? !x.r.citedBy.length : x.s.cls === refFilter));
+  $('refTable').innerHTML = `<thead><tr><th>#</th><th>Reference</th><th>Cited</th><th>Verification</th></tr></thead><tbody>` +
+    (shown.map(({ r, s }) => {
+      const v = r.verify || {};
+      const notes = (v.notes || []).map(n => `<div class="note">${esc(n)}</div>`).join('');
+      const recLink = v.record && v.record.doi ? `<div class="note"><a href="https://doi.org/${esc(v.record.doi)}" target="_blank" rel="noopener">Open record ↗</a></div>` : '';
+      const cited = r.citedBy.length ? `<span class="pill s-ok">${r.citedBy.length}×</span>` : `<span class="pill s-warn">Uncited</span><div class="note">Never cited in the text</div>`;
+      return `<tr id="ref-${r.idx}"><td class="num">${r.number != null ? r.number : r.idx + 1}</td><td>${esc(r.raw)}</td><td>${cited}</td><td>${pill(s.cls, s.label)}${notes}${recLink}</td></tr>`;
+    }).join('') || `<tr><td colspan="4" class="note">Nothing to show.</td></tr>`) + '</tbody>';
+}
+
+function correctedEntries() {
+  const { refs } = STATE;
+  const sorted = STATE.style.startsWith('Numbered') ? refs.slice() : refs.slice().sort((a, b) => (a.first || a.raw).localeCompare(b.first || b.raw) || String(a.year).localeCompare(String(b.year)));
+  return sorted.map(r => {
+    const v = r.verify;
+    if (v && v.record && (v.status === 'ok' || v.status === 'warn')) return { html: apaFromRecord(v.record, r), changed: true, r };
+    return { html: esc(r.body), changed: false, r };
+  });
+}
+function renderCorrected() {
+  const items = correctedEntries();
+  $('corrected').innerHTML = items.map(x => `<p class="${x.changed ? 'changed' : ''}">${x.html}${x.r.verify && x.r.verify.status === 'fake' ? ` ${pill('fake', x.r.verify.label)}` : ''}${!x.r.citedBy.length ? ` ${pill('warn', 'Uncited')}` : ''}</p>`).join('');
+}
+
+function jumpToRef(idx) {
+  if (refFilter !== 'all') { refFilter = 'all'; renderRefTable(); }
+  const row = document.getElementById('ref-' + idx);
+  if (!row) return;
+  row.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  row.classList.remove('flash'); void row.offsetWidth; row.classList.add('flash');
+}
+$('bodyView').addEventListener('click', e => {
+  const sp = e.target.closest('.cit'); if (!sp) return;
+  const c = STATE.cits[+sp.dataset.cit];
+  if (c.match.ref) jumpToRef(c.match.ref.idx); else toast('This citation has no matching reference.');
+});
+
+// ---------- copy & downloads ----------
+function toast(msg) { const t = $('toast'); t.textContent = msg; t.classList.add('show'); setTimeout(() => t.classList.remove('show'), 2600); }
+$('copyBtn').onclick = async () => {
+  const items = correctedEntries();
+  const html = items.map(x => `<p style="margin-left:0.5in;text-indent:-0.5in">${x.html}</p>`).join('');
+  const text = items.map(x => x.html.replace(/<[^>]+>/g, '').replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"').replace(/&#39;/g, "'")).join('\n');
+  try {
+    if (window.ClipboardItem) await navigator.clipboard.write([new ClipboardItem({ 'text/html': new Blob([html], { type: 'text/html' }), 'text/plain': new Blob([text], { type: 'text/plain' }) })]);
+    else await navigator.clipboard.writeText(text);
+    toast('Reference list copied — paste into Word to keep the italics.');
+  } catch (e) { await navigator.clipboard.writeText(text).catch(() => {}); toast('Copied as plain text.'); }
+};
+function download(name, content, type) {
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([content], { type }));
+  a.download = name; document.body.appendChild(a); a.click();
+  setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 500);
+}
+const csvCell = s => '"' + String(s == null ? '' : s).replace(/"/g, '""') + '"';
+$('dlCsvBtn').onclick = () => {
+  const { cits, refs } = STATE;
+  const lines = [['Type', '#', 'Citation / Reference', 'Mapped reference', 'Status', 'Notes'].map(csvCell).join(',')];
+  cits.forEach(c => { const s = citationStatus(c); lines.push(['Citation', c.id + 1, c.kind === 'numeric' ? `[${c.number}]` : c.text, c.match.ref ? c.match.ref.raw : '', s.label, s.note].map(csvCell).join(',')); });
+  refs.forEach(r => { const s = refStatus(r); lines.push(['Reference', r.number != null ? r.number : r.idx + 1, r.raw, r.citedBy.length ? `cited ${r.citedBy.length}x` : 'UNCITED', s.label, ((r.verify && r.verify.notes) || []).join('; ')].map(csvCell).join(',')); });
+  download('reference-check.csv', '﻿' + lines.join('\r\n'), 'text/csv;charset=utf-8');
+};
+$('dlHtmlBtn').onclick = () => {
+  const css = `body{font-family:Segoe UI,Arial,sans-serif;color:#1c2430;max-width:960px;margin:30px auto;padding:0 20px;line-height:1.55}h1{font-family:Georgia,serif}h2{font-family:Georgia,serif;color:#0f2340;margin-top:32px}
+  .stats{display:flex;flex-wrap:wrap;gap:10px}.stat{border:1px solid #e4e8ee;border-radius:10px;padding:8px 12px;min-width:120px}.stat .n{font-size:22px;font-weight:800}.stat .l{font-size:12px;color:#5a6472}
+  .body-view{white-space:pre-wrap;border:1px solid #e4e8ee;border-radius:8px;padding:14px;line-height:1.8}
+  .cit{border-radius:4px;padding:1px 2px;border-bottom:2px solid}.pill{display:inline-block;padding:1px 8px;border-radius:99px;font-size:11px;font-weight:700;border:1px solid}
+  .s-ok{background:#DDF3E6;border-color:#2E8B57;color:#1B5E3A}.s-warn{background:#FFF1CC;border-color:#C98A00;color:#7A5200}.s-miss{background:#FFE0DA;border-color:#D2462E;color:#8E2414}.s-fake{background:#EBDDFB;border-color:#7B3FC4;color:#4B1F86}.s-na{background:#ECEEF2;border-color:#8A93A3;color:#4A5261}
+  table{border-collapse:collapse;width:100%;font-size:13px}th,td{text-align:left;vertical-align:top;border-bottom:1px solid #e4e8ee;padding:7px}th{background:#f6f8fb}.note{font-size:12px;color:#5a6472}
+  .corrected p{padding-left:2em;text-indent:-2em;margin:0 0 8px}.legend span{margin-right:14px;font-size:12px}`;
+  const k = counts();
+  const date = new Date().toLocaleString();
+  const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Reference check report</title><style>${css}</style></head><body>
+  <h1>Reference check report</h1><p class="note">Generated ${esc(date)} with The Research School Reference Checker · Detected style: ${esc(STATE.style)}</p>
+  <div class="stats">${$('stats').innerHTML}</div>
+  <h2>Highlighted text</h2><p class="legend"><span class="cit s-ok">verified</span> <span class="cit s-warn">check details</span> <span class="cit s-miss">not in reference list</span> <span class="cit s-fake">possibly hallucinated / retracted</span> <span class="cit s-na">not verified</span></p>
+  <div class="body-view">${$('bodyView').innerHTML}</div>
+  <h2>Citation → reference map</h2>${tableHTML('cit')}
+  <h2>Reference list check</h2>${tableHTML('ref')}
+  <h2>Corrected reference list (APA 7)</h2><div class="corrected">${correctedEntries().map(x => `<p>${x.html}</p>`).join('')}</div>
+  <p class="note">“Possibly hallucinated” = no matching record in CrossRef/OpenAlex, or the DOI points to another paper. Books, reports and websites may not be indexed — always confirm manually.</p>
+  </body></html>`;
+  download('reference-check-report.html', html, 'text/html');
+};
+function tableHTML(which) {
+  const saveC = citFilter, saveR = refFilter;
+  citFilter = 'all'; refFilter = 'all'; renderCitTable(); renderRefTable();
+  const h = `<table>${$(which === 'cit' ? 'citTable' : 'refTable').innerHTML}</table>`;
+  citFilter = saveC; refFilter = saveR; renderCitTable(); renderRefTable();
+  return h;
+}
+
+// ---------- sample ----------
+$('sampleBtn').onclick = () => {
+  $('bodyText').value = `Research on technology adoption has relied heavily on the Technology Acceptance Model (Davis, 1989), which was later integrated into the Unified Theory of Acceptance and Use of Technology by Venkatesh et al. (2003). Davis (1988) argued that perceived usefulness is the strongest predictor of intention.
+
+Diffusion of innovations theory offers a complementary lens (Rogers, 2003). Recent evidence from Indian business schools suggests faculty adoption of generative AI rises sharply after training (Sharma & Kapoor, 2021).
+
+Measurement models were assessed for discriminant validity following Fornell and Larcker (1981), and reporting followed current PLS-SEM guidelines (Hiar et al., 2019).`;
+  $('refText').value = `Davis, F. D. (1989). Perceived usefulness, perceived ease of use, and user acceptance of information technology. MIS Quarterly, 13(3), 319–340. https://doi.org/10.2307/249008
+Fornell, C., & Larcker, D. F. (1981). Evaluating structural equation models with unobservable variables and measurement error. Journal of Marketing Research, 18(1), 39–50. https://doi.org/10.1177/002224378101800104
+Hair, J. F., Risher, J. J., Sarstedt, M., & Ringle, C. M. (2019). When to use and how to report the results of PLS-SEM. European Business Review, 31(1), 2–24. https://doi.org/10.1108/EBR-11-2018-0203
+Sharma, R., & Kapoor, N. (2021). Generative AI adoption among Indian management faculty: A longitudinal panel study. Journal of Educational Technology Futures, 14(2), 101–118. https://doi.org/10.5555/jetf.2021.0142
+Venkatesh, V., Morris, M. G., Davis, G. B., & Davis, F. D. (2003). User acceptance of information technology: Toward a unified view. MIS Quarterly, 27(3), 425–478. https://doi.org/10.2307/30036540
+Ajzen, I. (1991). The theory of planned behavior. Organizational Behavior and Human Decision Processes, 50(2), 179–211. https://doi.org/10.1016/0749-5978(91)90020-T`;
+  toast('Sample loaded — it includes a fake reference, a year mismatch, a misspelling, a missing entry and an uncited one.');
+};
+$('clearBtn').onclick = () => { $('bodyText').value = ''; $('refText').value = ''; $('results').style.display = 'none'; $('progress').style.display = 'none'; STATE = null; };
+$('runBtn').onclick = run;
+</script>
+</body>
+</html>
