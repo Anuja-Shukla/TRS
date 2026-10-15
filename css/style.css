@@ -765,3 +765,7 @@ body.modal-open { overflow: hidden; }
 .form-status.error { color: #b3261e; }
 .nav-cta .btn { white-space: nowrap; }
 @media (max-width: 480px) { .nav-cta .btn { padding: 9px 14px; font-size: 0.8rem; } }
+
+a.client-card { text-decoration: none; color: inherit; }
+a.client-card .client-name { text-decoration: underline; text-decoration-color: var(--gold-soft); text-underline-offset: 4px; }
+a.client-card:hover .client-name { color: var(--navy); text-decoration-color: var(--gold); }
