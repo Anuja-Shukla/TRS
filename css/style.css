@@ -812,3 +812,28 @@ a.service-card.resource-card:hover { transform: translateY(-3px); box-shadow: va
   .nav-cta .btn { padding-left: 14px; padding-right: 14px; }
   .brand-text .sub { display: none; }
 }
+
+/* ---------- always-visible tabs ----------
+   Wide screens: tabs sit in one row between logo and Contact Us.
+   Laptop/tablet widths (701–1360px): tabs drop to a second row under the logo so they stay visible.
+   Phones (≤700px): tabs collapse into the ☰ menu. */
+@media (min-width: 701px) and (max-width: 1360px) {
+  .site-header .nav { flex-wrap: wrap; row-gap: 0; padding-bottom: 0; }
+  .site-header .nav > nav { order: 3; flex: 0 0 100%; border-top: 1px solid var(--line); margin-top: 12px; }
+  .site-header .nav-links,
+  .site-header .nav-links.open {
+    display: flex; position: static; flex-direction: row; flex-wrap: wrap; justify-content: center;
+    gap: 4px 22px; padding: 10px 0 8px; background: none; border: 0; box-shadow: none;
+  }
+  .site-header .nav-toggle { display: none; }
+}
+@media (max-width: 700px) {
+  .nav-links { display: none; }
+  .nav-toggle { display: flex; }
+  .nav-links.open {
+    display: flex; position: absolute; top: 100%; left: 0; right: 0;
+    background: var(--white); flex-direction: column; padding: 20px 24px 28px; gap: 18px;
+    border-bottom: 1px solid var(--line); box-shadow: var(--shadow);
+  }
+}
+@media (min-width: 701px) and (max-width: 900px) { .site-header .nav-links { gap: 4px 14px; } .site-header .nav-links a { font-size: 0.84rem; } }
