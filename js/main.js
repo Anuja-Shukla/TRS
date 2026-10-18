@@ -125,6 +125,27 @@ document.addEventListener("DOMContentLoaded", function () {
     });
   }
 
+  // Numbers band: count up once when scrolled into view
+  var nums = document.querySelectorAll(".stat-num[data-count]");
+  if (nums.length && "IntersectionObserver" in window && !window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+    var io = new IntersectionObserver(function (entries) {
+      entries.forEach(function (en) {
+        if (!en.isIntersecting) return;
+        io.unobserve(en.target);
+        var el = en.target, target = +el.dataset.count, pre = el.dataset.prefix || "", suf = el.dataset.suffix || "", t0 = null;
+        function step(t) {
+          if (!t0) t0 = t;
+          var k = Math.min((t - t0) / 1400, 1), e = 1 - Math.pow(1 - k, 3);
+          el.textContent = pre + Math.round(target * e) + suf;
+          if (k < 1) requestAnimationFrame(step);
+        }
+        el.textContent = pre + "0" + suf;
+        requestAnimationFrame(step);
+      });
+    }, { threshold: 0.4 });
+    nums.forEach(function (n) { io.observe(n); });
+  }
+
   // Footer year
   var year = document.getElementById("year");
   if (year) year.textContent = new Date().getFullYear();
