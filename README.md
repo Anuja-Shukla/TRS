@@ -51,9 +51,9 @@ If/when you register a domain (e.g. `theresearchschool.com`) on GoDaddy:
 ## Notes / things to double-check before launch
 
 - **Contact form**: there's no backend, so the form opens the visitor's email client pre-filled
-  and addressed to `info@theresearchschool.com` (see `js/main.js`). Swap in a form service
+  and addressed to `intelliqueresearchschool@gmail.com` (see `js/main.js`). Swap in a form service
   (e.g. Formspree) if you'd rather collect submissions without relying on the visitor's mail app.
-- **Email address**: set to `info@theresearchschool.com` (matching the original page content) in
+- **Email address**: set to `intelliqueresearchschool@gmail.com` (matching the original page content) in
   both `index.html` and `js/main.js` — update everywhere if you want a different inbox, the same
   way the IRSPL site's contact address was changed.
 - **LinkedIn link**: currently a placeholder (`#`) in the footer and contact card on every page —

@@ -1,0 +1,26 @@
+# The Research School
+
+> The Research School (TRS) is a research and knowledge platform in Noida, India, that brings together academic research, market research, data, mentorship, training, and Artificial Intelligence. It works with academicians, PhD and DBA scholars, universities, educational institutions, and organizations. TRS is a subsidiary of Intellique Research School Pvt Ltd. Tagline: "Where Research Meets Data, Mentorship & AI."
+
+Vision: To become a trusted global partner in research and analytics — enabling individuals and organizations to generate meaningful insights and impactful knowledge.
+
+Approach: Understand → Design → Collect → Analyse → Mentor → Apply. Philosophy: research should be rigorous, practical, and relevant. AI should augment human expertise, critical thinking, and academic judgement rather than replace them.
+
+Contact: intelliqueresearchschool@gmail.com · LinkedIn: https://www.linkedin.com/in/the-research-school-738761282/ · YouTube: https://www.youtube.com/@TheResearchSchool
+
+## Services
+- [Academic Research](https://www.theresearchschool.com/services.html#academic): research design, literature reviews, research methodology, quantitative and qualitative research, data collection and analysis, PhD/DBA thesis and dissertation mentoring, publication support, Faculty Development Programmes.
+- [Market Research & Data Collection](https://www.theresearchschool.com/services.html#market): primary data collection, survey design and administration, respondent recruitment, consumer and customer experience studies, brand perception research, focus groups and interviews, competitive intelligence, research fieldwork.
+- [Research Training & Workshops](https://www.theresearchschool.com/services.html#training): SPSS, PLS-SEM, SmartPLS, structural equation modelling, qualitative research tools, literature review tools, academic writing, research publication.
+- [AI in Research & Education](https://www.theresearchschool.com/services.html#ai): AI for literature reviews, research workflows, academic writing, data analysis, teaching and assessment; responsible and ethical AI; faculty training.
+
+## Free resources
+- [Reference Checker](https://www.theresearchschool.com/reference-checker.html): matches in-text citations to references and flags references that may be hallucinated or retracted.
+- [Upcoming Conferences](https://www.theresearchschool.com/conferences.html): academic conferences open for papers, updated daily.
+- [Faculty Jobs](https://www.theresearchschool.com/faculty-jobs.html): faculty openings in India, updated daily.
+
+## About
+- [Home](https://www.theresearchschool.com/): vision, mission, approach, who we work with, FAQ.
+- [Webinars](https://www.theresearchschool.com/webinars.html)
+- [Trusted by Clients](https://www.theresearchschool.com/trusted-by-clients.html): The Asia Foundation, CUTS International, JIMS Greater Noida, BlueKite Learning, Resume Pal.
+- [Media Coverage](https://www.theresearchschool.com/media-coverage.html): MSME credit-readiness programme for almost 200 women-led MSMEs in Assam (2026).

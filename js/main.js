@@ -32,7 +32,7 @@ document.addEventListener("DOMContentLoaded", function () {
         (interest ? "\nArea of interest: " + interest : "") +
         "\n\n" + message;
 
-      var mailto = "mailto:info@theresearchschool.com" +
+      var mailto = "mailto:intelliqueresearchschool@gmail.com" +
         "?subject=" + encodeURIComponent("Enquiry from theresearchschool.com — " + name) +
         "&body=" + encodeURIComponent(body);
 
@@ -144,6 +144,25 @@ document.addEventListener("DOMContentLoaded", function () {
       });
     }, { threshold: 0.4 });
     nums.forEach(function (n) { io.observe(n); });
+  }
+
+  // Services page: keep the jump bar under the sticky header and highlight the section in view
+  var hdr = document.querySelector(".site-header");
+  function setHdr() { if (hdr) document.documentElement.style.setProperty("--hdr-h", hdr.offsetHeight + "px"); }
+  setHdr(); window.addEventListener("resize", setHdr);
+  var jumps = document.querySelectorAll(".svc-jump a");
+  if (jumps.length && "IntersectionObserver" in window) {
+    var map = {};
+    jumps.forEach(function (a) { map[a.getAttribute("href").slice(1)] = a; });
+    var so = new IntersectionObserver(function (es) {
+      es.forEach(function (e) {
+        if (e.isIntersecting) {
+          jumps.forEach(function (a) { a.classList.remove("on"); });
+          var a = map[e.target.id]; if (a) a.classList.add("on");
+        }
+      });
+    }, { rootMargin: "-45% 0px -50% 0px" });
+    Object.keys(map).forEach(function (id) { var el = document.getElementById(id); if (el) so.observe(el); });
   }
 
   // Footer year
