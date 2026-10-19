@@ -24,7 +24,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Lora:wght@500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/style.css?v=202610180551">
+<link rel="stylesheet" href="css/style.css?v=202610191203">
 <link rel="icon" type="image/png" href="media/brand/favicon.png">
 <link rel="apple-touch-icon" href="media/brand/logo-icon.png">
 <script type="application/ld+json">{
@@ -309,10 +309,10 @@
       <ul class="nav-links">
         <li><a href="index.html">Home</a></li>
         <li><a href="services.html" class="active" aria-current="page">Services</a></li>
-        <li><a href="webinars.html">Webinars</a></li>
         <li><a href="resources.html">Resources</a></li>
         <li><a href="trusted-by-clients.html">Trusted by Clients</a></li>
         <li><a href="media-coverage.html">Media Coverage</a></li>
+        <li><a href="webinars.html">Webinars</a></li>
       </ul>
     </nav>
     <div class="nav-cta">
@@ -331,13 +331,29 @@
   </div>
 </section>
 
-<nav class="svc-jump" aria-label="Services on this page">
+<nav class="svc-picker" aria-label="Our services">
   <div class="container">
     <ul>
-      <li><a href="#academic">Academic Research</a></li>
-      <li><a href="#market">Market Research &amp; Data Collection</a></li>
-      <li><a href="#training">Research Training &amp; Workshops</a></li>
-      <li><a href="#ai">AI in Research &amp; Education</a></li>
+      <li><a class="svc-pick" href="#academic">
+        <span class="svc-pick-circle"><svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><path d="M12 3 2 8l10 5 10-5-10-5Z"/><path d="M6 10.5V16c0 1.5 2.7 3 6 3s6-1.5 6-3v-5.5"/></svg></span>
+        <span class="svc-pick-title">Academic Research</span>
+        <span class="svc-pick-go" aria-hidden="true"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M6 13l6 6 6-6"/></svg></span>
+      </a></li>
+      <li><a class="svc-pick" href="#market">
+        <span class="svc-pick-circle"><svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><path d="M3 3v18h18"/><path d="m7 15 4-4 3 3 5-6"/></svg></span>
+        <span class="svc-pick-title">Market Research &amp; Data Collection</span>
+        <span class="svc-pick-go" aria-hidden="true"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M6 13l6 6 6-6"/></svg></span>
+      </a></li>
+      <li><a class="svc-pick" href="#training">
+        <span class="svc-pick-circle"><svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94Z"/></svg></span>
+        <span class="svc-pick-title">Research Training &amp; Workshops</span>
+        <span class="svc-pick-go" aria-hidden="true"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M6 13l6 6 6-6"/></svg></span>
+      </a></li>
+      <li><a class="svc-pick" href="#ai">
+        <span class="svc-pick-circle"><svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><rect x="6" y="6" width="12" height="12" rx="2"/><path d="M9 2v3M15 2v3M9 19v3M15 19v3M2 9h3M2 15h3M19 9h3M19 15h3"/></svg></span>
+        <span class="svc-pick-title">AI in Research &amp; Education</span>
+        <span class="svc-pick-go" aria-hidden="true"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M6 13l6 6 6-6"/></svg></span>
+      </a></li>
     </ul>
   </div>
 </nav>
@@ -466,8 +482,6 @@
   <div class="container footer-slim">
     <div class="footer-brand">
       <p class="footer-name">The Research School</p>
-      <p>Where Research Meets Data, Mentorship &amp; AI.</p>
-      <p class="footer-parent">A subsidiary of <a href="https://intelliqueresearchschool.com/" target="_blank" rel="noopener">Intellique Research School Pvt Ltd</a></p>
     </div>
     <ul class="footer-contact">
       <li><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 21s-7-5.6-7-11a7 7 0 0 1 14 0c0 5.4-7 11-7 11Z"/><circle cx="12" cy="10" r="2.5"/></svg><span>Noida, India</span></li>
@@ -482,6 +496,6 @@
     <span>© <span id="year">2026</span> The Research School. All rights reserved.</span>
   </div>
 </footer>
-<script src="js/main.js?v=202610180551"></script>
+<script src="js/main.js?v=202610191203"></script>
 </body>
 </html>
